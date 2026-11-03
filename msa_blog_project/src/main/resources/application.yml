@@ -4,7 +4,7 @@ server:
 spring:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate # Flyway управляет схемой, Hibernate только проверяет
     properties:
       hibernate:
         format_sql: true
@@ -13,3 +13,9 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:blog_user}
     password: ${SPRING_DATASOURCE_PASSWORD:blog_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true # если в БД уже есть таблицы (от старого проекта)
+    validate-on-migrate: true
