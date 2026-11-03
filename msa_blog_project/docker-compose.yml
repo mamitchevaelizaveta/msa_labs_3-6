@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # БД MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: blog-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: blog_db
+      MYSQL_USER: blog_user
+      MYSQL_PASSWORD: blog_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - blog-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # бэк 1
+  backend1:
+    build: .
+    container_name: blog-backend-1
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/blog_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: blog_user
+      SPRING_DATASOURCE_PASSWORD: blog_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - blog-network
+
+  # бэк2
+  backend2:
+    build: .
+    container_name: blog-backend-2
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/blog_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: blog_user
+      SPRING_DATASOURCE_PASSWORD: blog_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - blog-network
+
+  # Nginx
+  nginx:
+    image: nginx:latest
+    container_name: blog-nginx
+    restart: always
+    ports:
+      - "8080:80"  # Пробрасываем 80 порт Nginx на 8080 хоста
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend1
+      - backend2
+    networks:
+      - blog-network
+
+# томы
+volumes:
+  mysql_data:
+
+# сети
+networks:
+  blog-network:
+    driver: bridge
